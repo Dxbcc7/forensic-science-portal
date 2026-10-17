@@ -1,0 +1,278 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="An educational portal exploring forensic science, forensic medicine, and scientific investigation.">
+  <title>Forensic Science Portal</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="logo" href="#home" aria-label="Forensic Science Portal home">
+      <span class="logo-mark">F</span>
+      <span>FORENSIC<span class="logo-light"> / SCIENCE</span></span>
+    </a>
+
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="#library">Knowledge Library</a>
+      <a href="#infographics">Infographics</a>
+      <a href="#about">About</a>
+    </nav>
+
+    <a class="author-button" href="#author-info">For Authors ↗</a>
+  </header>
+
+  <main id="home">
+    <section class="hero">
+      <div class="hero-content">
+        <p class="eyebrow"><span class="status-dot"></span> SCIENCE · EVIDENCE · DISCOVERY</p>
+        <h1>Every clue<br>has a <span>story.</span></h1>
+        <p class="hero-description">
+          Explore the science behind forensic investigation.
+          Understand the evidence, discover the methods, and
+          learn how scientific knowledge helps us interpret the facts.
+        </p>
+        <div class="hero-actions">
+          <a class="primary-button" href="#library">Explore the library <span>↗</span></a>
+          <a class="text-button" href="#infographics">View infographics</a>
+        </div>
+      </div>
+
+      <div class="hero-visual" aria-label="Decorative scientific illustration">
+        <div class="orbit orbit-one"></div>
+        <div class="orbit orbit-two"></div>
+        <div class="visual-core">
+          <span class="core-symbol">F</span>
+          <span class="core-label">FORENSIC<br>SCIENCE</span>
+        </div>
+        <span class="visual-tag tag-top">01 / OBSERVE</span>
+        <span class="visual-tag tag-bottom">02 / ANALYSE</span>
+        <span class="visual-cross cross-one">+</span>
+        <span class="visual-cross cross-two">+</span>
+      </div>
+
+      <div class="hero-footer">
+        <span>AN EDUCATIONAL SCIENCE PORTAL</span>
+        <span>RESEARCH · EXPLAIN · VISUALISE</span>
+      </div>
+    </section>
+
+    <section class="topic-strip" aria-label="Topics covered">
+      <span>DNA & BIOLOGY</span>
+      <span>CRIME SCENE METHODS</span>
+      <span>TOXICOLOGY</span>
+      <span>BALLISTICS</span>
+      <span>FORENSIC TECHNOLOGY</span>
+    </section>
+
+    <section class="library-section section" id="library">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">THE KNOWLEDGE LIBRARY / 01</p>
+          <h2>Explore the evidence.</h2>
+          <p class="section-description">
+            Clear explanations of the methods and science used in forensic investigation.
+          </p>
+        </div>
+        <span class="section-index">01 — 06</span>
+      </div>
+
+      <div class="library-tools">
+        <label class="search-box">
+          <span aria-hidden="true">⌕</span>
+          <input id="searchInput" type="search"
+            placeholder="Search topics, methods, keywords..."
+            aria-label="Search articles">
+          <kbd>SEARCH</kbd>
+        </label>
+
+        <label class="filter-label" for="categoryFilter">CATEGORY</label>
+        <select id="categoryFilter" aria-label="Filter articles by category">
+          <option value="all">All topics</option>
+          <option value="biology">DNA & Forensic Biology</option>
+          <option value="crime-scene">Crime Scene Investigation</option>
+          <option value="toxicology">Forensic Toxicology</option>
+          <option value="ballistics">Forensic Ballistics</option>
+          <option value="technology">Methods & Technology</option>
+          <option value="history">History & Cases</option>
+        </select>
+      </div>
+
+      <div class="results-line">
+        <span id="resultsCount">6 articles</span>
+        <span>INTRODUCTORY COLLECTION</span>
+      </div>
+
+      <div class="article-grid" id="articleGrid">
+        <article class="article-card" data-category="biology"
+          data-search="dna forensic biology genetics identification profiling">
+          <div class="card-art art-dna"><span>DNA</span><span class="art-number">01</span></div>
+          <div class="card-content">
+            <p class="card-category">DNA & FORENSIC BIOLOGY</p>
+            <h3>DNA: The Science of Identification</h3>
+            <p>Discover how biological material can help investigators establish identity and associations.</p>
+            <button class="read-link" data-article="dna">Read article <span>↗</span></button>
+          </div>
+        </article>
+
+        <article class="article-card" data-category="crime-scene"
+          data-search="crime scene evidence collection contamination documentation investigation">
+          <div class="card-art art-scene"><span>SCENE / 02</span><span class="art-number">02</span></div>
+          <div class="card-content">
+            <p class="card-category">CRIME SCENE INVESTIGATION</p>
+            <h3>From Scene to Evidence</h3>
+            <p>Learn why documentation, careful collection, and contamination prevention matter.</p>
+            <button class="read-link" data-article="scene">Read article <span>↗</span></button>
+          </div>
+        </article>
+
+        <article class="article-card" data-category="toxicology"
+          data-search="toxicology chemicals poison substances laboratory analysis blood">
+          <div class="card-art art-toxic"><span>TOX / LAB</span><span class="art-number">03</span></div>
+          <div class="card-content">
+            <p class="card-category">FORENSIC TOXICOLOGY</p>
+            <h3>What Toxicology Can Reveal</h3>
+            <p>Explore how laboratories test samples for substances and interpret analytical findings.</p>
+            <button class="read-link" data-article="toxicology">Read article <span>↗</span></button>
+          </div>
+        </article>
+
+        <article class="article-card" data-category="ballistics"
+          data-search="ballistics firearms ammunition toolmarks projectile forensic comparison">
+          <div class="card-art art-ballistics"><span>TRACE / 04</span><span class="art-number">04</span></div>
+          <div class="card-content">
+            <p class="card-category">FORENSIC BALLISTICS</p>
+            <h3>Understanding Ballistics</h3>
+            <p>Find out how firearm-related evidence may be examined and compared by specialists.</p>
+            <button class="read-link" data-article="ballistics">Read article <span>↗</span></button>
+          </div>
+        </article>
+
+        <article class="article-card" data-category="technology"
+          data-search="forensic technology digital imaging microscopy chromatography instruments">
+          <div class="card-art art-tech"><span>ANALYSIS</span><span class="art-number">05</span></div>
+          <div class="card-content">
+            <p class="card-category">METHODS & TECHNOLOGY</p>
+            <h3>Tools Behind the Analysis</h3>
+            <p>See how laboratory instruments and imaging technologies support scientific examination.</p>
+            <button class="read-link" data-article="technology">Read article <span>↗</span></button>
+          </div>
+        </article>
+
+        <article class="article-card" data-category="history"
+          data-search="history forensic science cases development evidence scientific methods">
+          <div class="card-art art-history"><span>ARCHIVE / 06</span><span class="art-number">06</span></div>
+          <div class="card-content">
+            <p class="card-category">HISTORY & INTERESTING CASES</p>
+            <h3>How Forensic Science Evolved</h3>
+            <p>Trace the development of scientific methods used to examine and interpret evidence.</p>
+            <button class="read-link" data-article="history">Read article <span>↗</span></button>
+          </div>
+        </article>
+      </div>
+
+      <p id="emptyMessage" class="empty-message" hidden>
+        No articles match your search. Try another keyword or category.
+      </p>
+    </section>
+
+    <section class="infographics-section section" id="infographics">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">VISUAL KNOWLEDGE / 02</p>
+          <h2>Complex science.<br><span>Clear visuals.</span></h2>
+          <p class="section-description">
+            Visual explanations designed to make scientific ideas easier to understand.
+          </p>
+        </div>
+      </div>
+
+      <div class="infographic-grid">
+        <article class="infographic-card">
+          <div class="infographic-visual dna-visual">
+            <div class="dna-strand">A · T<br>G · C<br>T · A<br>C · G</div>
+            <span>01 / BIOLOGY</span>
+          </div>
+          <div class="infographic-caption">
+            <div><h3>Inside DNA profiling</h3><p>A visual introduction to genetic identification.</p></div>
+            <span>01</span>
+          </div>
+        </article>
+
+        <article class="infographic-card">
+          <div class="infographic-visual evidence-visual">
+            <div class="evidence-circle">EVIDENCE<br>→ ANALYSIS<br>→ FINDINGS</div>
+            <span>02 / PROCESS</span>
+          </div>
+          <div class="infographic-caption">
+            <div><h3>The evidence journey</h3><p>From collection to scientific interpretation.</p></div>
+            <span>02</span>
+          </div>
+        </article>
+
+        <article class="infographic-card">
+          <div class="infographic-visual lab-visual">
+            <div class="lab-bars"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+            <span>03 / LABORATORY</span>
+          </div>
+          <div class="infographic-caption">
+            <div><h3>Reading laboratory results</h3><p>Why context and limitations matter.</p></div>
+            <span>03</span>
+          </div>
+        </article>
+      </div>
+      <p class="small-note">These are introductory visual concepts. Original, research-checked infographics will be developed for the final project.</p>
+    </section>
+
+    <section class="about-section section" id="about">
+      <p class="eyebrow">ABOUT THE PROJECT / 03</p>
+      <h2>Science first.<br><span>Evidence always.</span></h2>
+      <div class="about-bottom">
+        <p>
+          This educational portal explores forensic medicine and forensic science
+          through accessible explanations, visual learning, and research-based content.
+          Its goal is to help readers understand scientific methods without confusing
+          evidence with speculation.
+        </p>
+        <div class="principle-list">
+          <div><span>01</span><p>Reliable sources and references</p></div>
+          <div><span>02</span><p>Clear explanations for non-specialists</p></div>
+          <div><span>03</span><p>Responsible interpretation of evidence</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="author-section section" id="author-info">
+      <p class="eyebrow">CONTRIBUTE / 04</p>
+      <h2>Have knowledge to share?</h2>
+      <p class="section-description">
+        Author registration and article publishing will be added in a later development stage.
+      </p>
+      <span class="coming-soon">AUTHOR PORTAL · IN DEVELOPMENT</span>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <a class="logo footer-logo" href="#home">
+      <span class="logo-mark">F</span>
+      <span>FORENSIC<span class="logo-light"> / SCIENCE</span></span>
+    </a>
+    <p>Educational project · Scientific curiosity, responsibly explored.</p>
+    <a href="#home">BACK TO TOP ↑</a>
+  </footer>
+
+  <dialog id="articleDialog" class="article-dialog">
+    <button id="closeDialog" class="dialog-close" aria-label="Close article">×</button>
+    <p id="dialogCategory" class="eyebrow"></p>
+    <h2 id="dialogTitle"></h2>
+    <div id="dialogBody" class="dialog-body"></div>
+    <p class="source-notice">
+      Educational overview. Detailed claims and references will be verified
+      against reliable scientific sources before final publication.
+    </p>
+  </dialog>
+</body>
+</html>
