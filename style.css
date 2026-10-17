@@ -1070,3 +1070,10 @@ select:focus-visible {
     transition-duration: 0.01ms !important;
   }
 }
+/* Article dialog: support long content */
+#articleDialog {
+  max-height: 85vh;
+  max-width: min(90vw, 800px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
