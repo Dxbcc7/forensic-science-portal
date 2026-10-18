@@ -1,4 +1,3 @@
-
 "use strict";
 
 // =====================================================
@@ -13,8 +12,10 @@ const SUPABASE_PUBLISHABLE_KEY =
 let supabaseClient = null;
 
 function initializeSupabase() {
-  if (!window.supabase ||
-      typeof window.supabase.createClient !== "function") {
+  if (
+    !window.supabase ||
+    typeof window.supabase.createClient !== "function"
+  ) {
     console.error(
       "Supabase library has not loaded. Check index.html."
     );
@@ -201,8 +202,11 @@ const savedEmpty = document.getElementById("savedEmpty");
 const STORAGE_KEY = "forensicScienceSavedArticles";
 
 // =====================================================
-// 4. LOCAL SAVED ARTICLES
+// 4. SAVED ARTICLES AND CLOUD STATE
 // =====================================================
+
+// Guest bookmarks are stored locally.
+// Bookmarks belonging to a signed-in user are stored in Supabase.
 
 function loadSavedArticles() {
   try {
@@ -223,35 +227,63 @@ function loadSavedArticles() {
   }
 }
 
-let savedArticles = loadSavedArticles();
-
-function persistSavedArticles() {
+function persistGuestSavedArticles(list) {
   try {
     localStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify(savedArticles)
+      JSON.stringify(list)
     );
+
     return true;
   } catch (error) {
-    console.error("Could not save articles:", error);
-    alert("Your browser could not save this change.");
+    console.error("Could not save guest articles:", error);
+
+    alert(
+      "Your browser could not save this change. Please check your browser storage settings."
+    );
+
     return false;
   }
 }
+
+let guestSavedArticles = loadSavedArticles();
+
+// The list currently displayed on the page.
+let savedArticles = [...guestSavedArticles];
+
+// Current signed-in user, if any.
+let currentUser = null;
+
+// True only after the current user's cloud bookmarks have loaded.
+let cloudSyncReady = false;
+
+// Used to ignore results from an older login or logout request.
+let authVersion = 0;
+let activeUserId = null;
+let syncingUserId = null;
+
+// Prevents repeated clicks from sending overlapping requests for one article.
+const pendingSaveIds = new Set();
+
+// =====================================================
+// 5. SAVED ARTICLE BUTTONS AND RENDERING
+// =====================================================
 
 function updateSaveButtons() {
   document.querySelectorAll("[data-save-article]").forEach(button => {
     const id = button.dataset.saveArticle;
     const isSaved = savedArticles.includes(id);
 
-    button.textContent =
-      button.dataset.savedCopy === "true"
-        ? "Remove from saved"
-        : isSaved
-          ? "Saved ✓"
-          : "Save article";
+    if (button.dataset.savedCopy === "true") {
+      button.textContent = "Remove from saved";
+    } else {
+      button.textContent = isSaved
+        ? "Saved ✓"
+        : "Save article";
+    }
 
     button.setAttribute("aria-pressed", String(isSaved));
+    button.disabled = pendingSaveIds.has(id);
   });
 }
 
@@ -283,6 +315,7 @@ function renderSavedArticles() {
   });
 
   savedEmpty.hidden = savedArticles.length !== 0;
+
   updateSaveButtons();
 }
 
@@ -302,6 +335,7 @@ function addSaveButtons() {
     }
 
     const button = document.createElement("button");
+
     button.type = "button";
     button.className = "save-button";
     button.dataset.saveArticle = readButton.dataset.article;
@@ -313,35 +347,247 @@ function addSaveButtons() {
   updateSaveButtons();
 }
 
-function toggleSavedArticle(id) {
-  if (!Object.prototype.hasOwnProperty.call(articles, id)) return;
+// =====================================================
+// 6. CLOUD BOOKMARK SYNCHRONISATION
+// =====================================================
 
-  const previous = [...savedArticles];
+function getValidArticleIds(ids) {
+  return [...new Set(
+    ids.filter(id =>
+      typeof id === "string" &&
+      Object.prototype.hasOwnProperty.call(articles, id)
+    )
+  )];
+}
 
-  if (savedArticles.includes(id)) {
-    savedArticles = savedArticles.filter(savedId => savedId !== id);
-  } else {
-    savedArticles.push(id);
+async function syncUserSavedArticles(user, version) {
+  if (!supabaseClient || !user) return;
+
+  console.log("Loading cloud bookmarks for the signed-in user.");
+
+  try {
+    // 1. Load bookmarks belonging to this user only.
+    const { data, error } = await supabaseClient
+      .from("saved_articles")
+      .select("article_id")
+      .eq("user_id", user.id);
+
+    if (error) throw error;
+
+    // If the user signed out or changed accounts while loading,
+    // ignore this result.
+    if (
+      version !== authVersion ||
+      activeUserId !== user.id
+    ) {
+      return;
+    }
+
+    const cloudIds = getValidArticleIds(
+      (data || []).map(row => row.article_id)
+    );
+
+    // 2. Collect guest bookmarks for migration into this account.
+    const guestIds = [...guestSavedArticles];
+
+    // 3. Copy guest bookmarks into Supabase.
+    // The unique index prevents duplicate user/article pairs.
+    if (guestIds.length > 0) {
+      const rowsToInsert = guestIds.map(articleId => ({
+        user_id: user.id,
+        article_id: articleId
+      }));
+
+      const { error: migrationError } = await supabaseClient
+        .from("saved_articles")
+        .upsert(rowsToInsert, {
+          onConflict: "user_id,article_id",
+          ignoreDuplicates: true
+        });
+
+      if (migrationError) throw migrationError;
+    }
+
+    // Make sure this is still the same login session.
+    if (
+      version !== authVersion ||
+      activeUserId !== user.id
+    ) {
+      return;
+    }
+
+    // 4. Combine cloud bookmarks with successfully migrated guest ones.
+    savedArticles = getValidArticleIds([
+      ...cloudIds,
+      ...guestIds
+    ]);
+
+    // 5. Clear the guest list only after migration succeeded.
+    // The cloud account now owns the migrated bookmarks.
+    if (guestIds.length > 0) {
+      const cleared = persistGuestSavedArticles([]);
+
+      if (cleared) {
+        guestSavedArticles = [];
+      } else {
+        console.warn(
+          "Cloud migration succeeded, but local guest bookmarks could not be cleared."
+        );
+      }
+    }
+
+    cloudSyncReady = true;
+
+    renderSavedArticles();
+
+    console.log(
+      "Cloud bookmarks loaded:",
+      savedArticles.length
+    );
+  } catch (error) {
+    console.error("Could not synchronise saved articles:", error);
+
+    if (
+      version !== authVersion ||
+      activeUserId !== user.id
+    ) {
+      return;
+    }
+
+    cloudSyncReady = false;
+
+    // If cloud loading failed, do not pretend that the local guest
+    // list is the user's cloud list.
+    savedArticles = [...guestSavedArticles];
+
+    renderSavedArticles();
+
+    alert(
+      "You are signed in, but your cloud bookmarks could not be loaded. Your guest bookmarks have been kept. Please check your connection and refresh the page."
+    );
   }
+}
 
-  if (!persistSavedArticles()) {
-    savedArticles = previous;
-    updateSaveButtons();
+// =====================================================
+// 7. ADDING AND REMOVING BOOKMARKS
+// =====================================================
+
+async function toggleSavedArticle(id) {
+  if (!Object.prototype.hasOwnProperty.call(articles, id)) {
     return;
   }
+
+  if (pendingSaveIds.has(id)) return;
+
+  const isCurrentlySaved = savedArticles.includes(id);
+
+  // ---------------------------------------------------
+  // SIGNED-IN USER: update Supabase
+  // ---------------------------------------------------
+
+  if (currentUser) {
+    if (!cloudSyncReady) {
+      alert(
+        "Your cloud bookmarks are still loading or could not be synchronised. Please wait or refresh the page before changing bookmarks."
+      );
+
+      return;
+    }
+
+    pendingSaveIds.add(id);
+    updateSaveButtons();
+
+    try {
+      if (isCurrentlySaved) {
+        // Remove this bookmark from the current user's account.
+        const { error } = await supabaseClient
+          .from("saved_articles")
+          .delete()
+          .eq("user_id", currentUser.id)
+          .eq("article_id", id);
+
+        if (error) throw error;
+
+        savedArticles = savedArticles.filter(
+          savedId => savedId !== id
+        );
+      } else {
+        // Add this bookmark to the current user's account.
+        const { error } = await supabaseClient
+          .from("saved_articles")
+          .upsert(
+            {
+              user_id: currentUser.id,
+              article_id: id
+            },
+            {
+              onConflict: "user_id,article_id",
+              ignoreDuplicates: true
+            }
+          );
+
+        if (error) throw error;
+
+        if (!savedArticles.includes(id)) {
+          savedArticles.push(id);
+        }
+      }
+
+      renderSavedArticles();
+    } catch (error) {
+      console.error("Could not update cloud bookmark:", error);
+
+      alert(
+        "The bookmark could not be updated in your account. Please check your connection and try again."
+      );
+    } finally {
+      pendingSaveIds.delete(id);
+      updateSaveButtons();
+    }
+
+    return;
+  }
+
+  // ---------------------------------------------------
+  // GUEST: update localStorage
+  // ---------------------------------------------------
+
+  const previousGuestArticles = [...guestSavedArticles];
+
+  if (isCurrentlySaved) {
+    guestSavedArticles = guestSavedArticles.filter(
+      savedId => savedId !== id
+    );
+  } else {
+    guestSavedArticles.push(id);
+  }
+
+  if (!persistGuestSavedArticles(guestSavedArticles)) {
+    guestSavedArticles = previousGuestArticles;
+    savedArticles = [...guestSavedArticles];
+
+    renderSavedArticles();
+    return;
+  }
+
+  savedArticles = [...guestSavedArticles];
 
   renderSavedArticles();
 }
 
 function handleArticleGridClick(event) {
-  const saveButton = event.target.closest("[data-save-article]");
+  const target = event.target;
+
+  if (!(target instanceof Element)) return;
+
+  const saveButton = target.closest("[data-save-article]");
 
   if (saveButton) {
     toggleSavedArticle(saveButton.dataset.saveArticle);
     return;
   }
 
-  const readButton = event.target.closest("[data-article]");
+  const readButton = target.closest("[data-article]");
 
   if (readButton) {
     openArticle(readButton.dataset.article);
@@ -349,16 +595,22 @@ function handleArticleGridClick(event) {
 }
 
 // =====================================================
-// 5. SEARCH AND CATEGORY FILTER
+// 8. SEARCH AND CATEGORY FILTER
 // =====================================================
 
 function filterArticles() {
-  if (!searchInput || !categoryFilter || !articleGrid || !resultsCount) {
+  if (
+    !searchInput ||
+    !categoryFilter ||
+    !articleGrid ||
+    !resultsCount
+  ) {
     return;
   }
 
   const searchTerm = searchInput.value.trim().toLowerCase();
   const selectedCategory = categoryFilter.value;
+
   let visibleCount = 0;
 
   articleGrid.querySelectorAll(".article-card").forEach(card => {
@@ -394,7 +646,7 @@ function filterArticles() {
 }
 
 // =====================================================
-// 6. ARTICLE DIALOG
+// 9. ARTICLE DIALOG
 // =====================================================
 
 function openArticle(articleId) {
@@ -413,6 +665,7 @@ function openArticle(articleId) {
 
   dialogCategory.textContent = article.category;
   dialogTitle.textContent = article.title;
+
   dialogBody.replaceChildren();
 
   article.sections.forEach(section => {
@@ -426,9 +679,11 @@ function openArticle(articleId) {
   });
 
   const saveButton = document.createElement("button");
+
   saveButton.type = "button";
   saveButton.className = "save-button";
   saveButton.dataset.saveArticle = articleId;
+
   saveButton.textContent = savedArticles.includes(articleId)
     ? "Saved ✓"
     : "Save article";
@@ -462,7 +717,11 @@ if (closeDialogButton && articleDialog) {
       articleDialog.close();
     }
 
-    const saveButton = event.target.closest("[data-save-article]");
+    const target = event.target;
+
+    if (!(target instanceof Element)) return;
+
+    const saveButton = target.closest("[data-save-article]");
 
     if (saveButton) {
       toggleSavedArticle(saveButton.dataset.saveArticle);
@@ -471,13 +730,14 @@ if (closeDialogButton && articleDialog) {
 }
 
 // =====================================================
-// 7. AUTHENTICATION STYLES
+// 10. AUTHENTICATION STYLES
 // =====================================================
 
 function addAuthStyles() {
   if (document.getElementById("supabase-auth-styles")) return;
 
   const style = document.createElement("style");
+
   style.id = "supabase-auth-styles";
 
   style.textContent = `
@@ -625,7 +885,7 @@ function addAuthStyles() {
 }
 
 // =====================================================
-// 8. CREATE LOGIN AND REGISTRATION UI
+// 11. CREATE LOGIN AND REGISTRATION UI
 // =====================================================
 
 function createAuthUI() {
@@ -641,21 +901,25 @@ function createAuthUI() {
   }
 
   const controls = document.createElement("div");
+
   controls.className = "fsp-auth-controls";
   controls.id = "fspAuthControls";
 
   const openButton = document.createElement("button");
+
   openButton.type = "button";
   openButton.id = "fspAuthOpen";
   openButton.className = "author-button fsp-auth-button";
   openButton.textContent = "Sign in / Register";
 
   const userLabel = document.createElement("span");
+
   userLabel.id = "fspAuthUser";
   userLabel.className = "fsp-auth-user";
   userLabel.hidden = true;
 
   const signOutButton = document.createElement("button");
+
   signOutButton.type = "button";
   signOutButton.id = "fspAuthSignOut";
   signOutButton.className = "author-button fsp-auth-button";
@@ -673,6 +937,7 @@ function createAuthUI() {
   }
 
   const authDialog = document.createElement("dialog");
+
   authDialog.id = "fspAuthDialog";
   authDialog.className = "fsp-auth-dialog";
   authDialog.setAttribute("aria-labelledby", "fspAuthTitle");
@@ -685,6 +950,7 @@ function createAuthUI() {
           <h2 id="fspAuthTitle">Welcome back</h2>
           <p id="fspAuthIntro">Sign in with your email and password.</p>
         </div>
+
         <button
           type="button"
           id="fspAuthClose"
@@ -836,6 +1102,7 @@ function createAuthUI() {
         "Connection is unavailable. Refresh the page and try again.",
         "error"
       );
+
       return;
     }
 
@@ -883,7 +1150,10 @@ function createAuthUI() {
 
         passwordInput.value = "";
       } else {
-        const user = result.data.session?.user || result.data.user || null;
+        const user =
+          result.data.session?.user ||
+          result.data.user ||
+          null;
 
         updateAuthUI(result.data.session?.user || null);
 
@@ -898,7 +1168,9 @@ function createAuthUI() {
 
         if (user && result.data.session) {
           window.setTimeout(() => {
-            if (authDialog.open) authDialog.close();
+            if (authDialog.open) {
+              authDialog.close();
+            }
           }, 700);
         }
       }
@@ -938,6 +1210,7 @@ function createAuthUI() {
       updateAuthUI(null);
     } catch (error) {
       console.error("Sign-out error:", error);
+
       alert("Could not sign out right now. Please try again.");
     } finally {
       signOutButton.disabled = false;
@@ -948,7 +1221,68 @@ function createAuthUI() {
 }
 
 // =====================================================
-// 9. INITIALISE THE PAGE
+// 12. HANDLE LOGIN, LOGOUT, AND SESSION RESTORATION
+// =====================================================
+
+async function handleAuthSession(session, authUI) {
+  const user = session?.user || null;
+  const nextUserId = user?.id || null;
+
+  authUI.updateAuthUI(user);
+
+  // Ignore duplicate auth events for a user whose bookmarks
+  // have already loaded or are currently loading.
+  if (
+    nextUserId === activeUserId &&
+    (
+      cloudSyncReady ||
+      syncingUserId === nextUserId
+    )
+  ) {
+    return;
+  }
+
+  activeUserId = nextUserId;
+
+  // Invalidate any request belonging to an older session.
+  const version = ++authVersion;
+
+  if (!user) {
+    currentUser = null;
+    cloudSyncReady = false;
+    syncingUserId = null;
+
+    // Restore the guest list instead of displaying another
+    // user's cloud bookmarks after sign-out.
+    savedArticles = [...guestSavedArticles];
+
+    renderSavedArticles();
+
+    console.log("Signed out. Showing guest bookmarks.");
+
+    return;
+  }
+
+  currentUser = user;
+  cloudSyncReady = false;
+  syncingUserId = user.id;
+
+  // Prevent bookmark changes until this user's cloud list loads.
+  savedArticles = [...guestSavedArticles];
+
+  renderSavedArticles();
+
+  try {
+    await syncUserSavedArticles(user, version);
+  } finally {
+    if (syncingUserId === user.id) {
+      syncingUserId = null;
+    }
+  }
+}
+
+// =====================================================
+// 13. INITIALISE THE PAGE
 // =====================================================
 
 function initializePage() {
@@ -972,22 +1306,32 @@ function initializePage() {
   renderSavedArticles();
   filterArticles();
 
-  // Create the controls, then initialise Supabase.
+  // Keep the existing login and registration interface.
   const authUI = createAuthUI();
+
+  // Connect to Supabase.
   initializeSupabase();
 
   if (supabaseClient && authUI) {
+    // Restore the current session when the page opens.
     supabaseClient.auth.getSession()
       .then(({ data, error }) => {
         if (error) throw error;
-        authUI.updateAuthUI(data.session?.user || null);
+
+        return handleAuthSession(data.session, authUI);
       })
       .catch(error => {
         console.error("Could not restore session:", error);
       });
 
+    // Supabase reports login, logout, and session changes.
+    // setTimeout keeps cloud requests outside the auth callback.
     supabaseClient.auth.onAuthStateChange((_event, session) => {
-      authUI.updateAuthUI(session?.user || null);
+      window.setTimeout(() => {
+        handleAuthSession(session, authUI).catch(error => {
+          console.error("Could not handle auth session:", error);
+        });
+      }, 0);
     });
   }
 
@@ -1000,6 +1344,10 @@ if (document.readyState === "loading") {
 } else {
   initializePage();
 }
+
+// =====================================================
+// 14. EXISTING AUTH BUTTON COLOURS
+// =====================================================
 
 const authButtonStyles = document.createElement("style");
 
