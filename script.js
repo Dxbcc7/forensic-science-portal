@@ -36,7 +36,30 @@ function initializeSupabase() {
   console.log("Supabase client initialized.");
 }
 
-initializeSupabase();
+
+function initializeSupabase() {
+  if (
+    !SUPABASE_URL.startsWith("https://") ||
+    SUPABASE_URL === "PASTE_YOUR_PROJECT_URL_HERE"
+  ) {
+    console.warn(
+      "Supabase is not configured yet. Local article saving remains available."
+    );
+    return;
+  }
+
+  if (!window.supabase?.createClient) {
+    console.error("Supabase library has not loaded.");
+    return;
+  }
+
+  supabaseClient = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_PUBLISHABLE_KEY
+  );
+
+  console.log("Supabase client initialized.");
+}
 
 // -----------------------------------------------
 // EXISTING ARTICLE CODE CONTINUES BELOW
