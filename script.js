@@ -231,8 +231,138 @@ function filterArticles() {
   emptyMessage.hidden = visibleCount !== 0;
 }
 
-searchInput.addEventListener("input", filterArticles);
-categoryFilter.addEventListener("change", filterArticles);
+// -----------------------------------------------
+// 3A. SAVED ARTICLES
+// -----------------------------------------------
+
+function persistSavedArticles() {
+  try {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify(savedArticles)
+    );
+    return true;
+  } catch (error) {
+    console.error("Could not save articles:", error);
+    alert("Your browser could not save this change.");
+    return false;
+  }
+}
+
+function updateSaveButtons() {
+  document.querySelectorAll("[data-save-article]").forEach(function (button) {
+    const articleId = button.dataset.saveArticle;
+
+    if (button.dataset.savedCopy === "true") {
+      button.textContent = "Remove from saved";
+    } else {
+      button.textContent = savedArticles.includes(articleId)
+        ? "Saved ✓"
+        : "Save article";
+    }
+
+    button.setAttribute(
+      "aria-pressed",
+      String(savedArticles.includes(articleId))
+    );
+  });
+}
+
+function renderSavedArticles() {
+  savedGrid.replaceChildren();
+
+  savedArticles.forEach(function (articleId) {
+    const originalCard = articleGrid.querySelector(
+      '[data-article="' + articleId + '"]'
+    );
+
+    if (!originalCard) {
+      return;
+    }
+
+    const card = originalCard.cloneNode(true);
+    card.hidden = false;
+    card.dataset.savedCopy = "true";
+
+    card.querySelectorAll("[data-save-article]").forEach(function (button) {
+      button.dataset.savedCopy = "true";
+    });
+
+    savedGrid.appendChild(card);
+  });
+
+  savedEmpty.hidden = savedArticles.length !== 0;
+  updateSaveButtons();
+}
+
+function addSaveButtons() {
+  articleGrid.querySelectorAll(".article-card").forEach(function (card) {
+    const readButton = card.querySelector("[data-article]");
+
+    if (!readButton) {
+      return;
+    }
+
+    const articleId = readButton.dataset.article;
+    const content = card.querySelector(".card-content");
+
+    if (!content || content.querySelector("[data-save-article]")) {
+      return;
+    }
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "save-button";
+    button.dataset.saveArticle = articleId;
+    button.textContent = "Save article";
+
+    content.appendChild(button);
+  });
+
+  updateSaveButtons();
+}
+
+function toggleSavedArticle(articleId) {
+  const wasSaved = savedArticles.includes(articleId);
+  const previousSavedArticles = [...savedArticles];
+
+  if (wasSaved) {
+    savedArticles = savedArticles.filter(function (id) {
+      return id !== articleId;
+    });
+  } else {
+    savedArticles.push(articleId);
+  }
+
+  if (!persistSavedArticles()) {
+    savedArticles = previousSavedArticles;
+    return;
+  }
+
+  renderSavedArticles();
+}
+
+function handleArticleGridClick(event) {
+  const saveButton = event.target.closest("[data-save-article]");
+
+  if (saveButton) {
+    toggleSavedArticle(saveButton.dataset.saveArticle);
+    return;
+  }
+
+  const readButton = event.target.closest("[data-article]");
+
+  if (readButton) {
+    openArticle(readButton.dataset.article);
+  }
+}
+
+addSaveButtons();
+
+articleGrid.addEventListener("click", handleArticleGridClick);
+savedGrid.addEventListener("click", handleArticleGridClick);
+
+renderSavedArticles();
 
 // -----------------------------------------------
 // 4. OPEN AN ARTICLE
