@@ -1,11 +1,11 @@
-
+\
 "use strict";
 
 // -----------------------------------------------
 // 0. SUPABASE CONFIGURATION
 // -----------------------------------------------
 
-const SUPABASE_URL = "PASTE_YOUR_PROJECT_URL_HERE";
+const SUPABASE_URL = "https://mqjmbydeduuakltbejeh.supabase.co";
 
 const SUPABASE_PUBLISHABLE_KEY =
   "sb_publishable_Dswj8LMhWvc8Rr_728BMHg_A7Gwc-li";
@@ -15,7 +15,7 @@ let supabaseClient = null;
 function initializeSupabase() {
   if (
     !SUPABASE_URL.startsWith("https://") ||
-    SUPABASE_URL === "PASTE_YOUR_PROJECT_URL_HERE"
+    SUPABASE_URL === "https://mqjmbydeduuakltbejeh.supabase.co"
   ) {
     console.warn(
       "Supabase is not configured yet. Local article saving remains available."
