@@ -83,9 +83,12 @@
       <div class="library-tools">
         <label class="search-box">
           <span aria-hidden="true">⌕</span>
-          <input id="searchInput" type="search"
+          <input
+            id="searchInput"
+            type="search"
             placeholder="Search topics, methods, keywords..."
-            aria-label="Search articles">
+            aria-label="Search articles"
+          >
           <kbd>SEARCH</kbd>
         </label>
 
@@ -109,32 +112,24 @@
       <div class="article-grid" id="articleGrid">
         <article class="article-card" data-category="biology"
           data-search="dna forensic biology genetics identification profiling">
-          <div class="card-art art-dna"><span>DNA</span><span class="art-number">01</span></div>
+          <div class="card-art art-dna">
+            <span>DNA</span>
+            <span class="art-number">01</span>
+          </div>
           <div class="card-content">
             <p class="card-category">DNA & FORENSIC BIOLOGY</p>
             <h3>DNA: The Science of Identification</h3>
             <p>Discover how biological material can help investigators establish identity and associations.</p>
             <button class="read-link" data-article="dna">Read article <span>↗</span></button>
           </div>
-<section class="saved-section" id="savedSection">
-  <div class="section-heading">
-    <p class="eyebrow">YOUR LIBRARY</p>
-    <h2>Saved Articles</h2>
-    <p>Keep useful forensic science articles close at hand.</p>
-  </div>
-
-  <div class="saved-grid" id="savedGrid"></div>
-
-  <p class="saved-empty" id="savedEmpty">
-    You haven't saved any articles yet.
-  </p>
-</section>
-
         </article>
 
         <article class="article-card" data-category="crime-scene"
           data-search="crime scene evidence collection contamination documentation investigation">
-          <div class="card-art art-scene"><span>SCENE / 02</span><span class="art-number">02</span></div>
+          <div class="card-art art-scene">
+            <span>SCENE / 02</span>
+            <span class="art-number">02</span>
+          </div>
           <div class="card-content">
             <p class="card-category">CRIME SCENE INVESTIGATION</p>
             <h3>From Scene to Evidence</h3>
@@ -145,7 +140,10 @@
 
         <article class="article-card" data-category="toxicology"
           data-search="toxicology chemicals poison substances laboratory analysis blood">
-          <div class="card-art art-toxic"><span>TOX / LAB</span><span class="art-number">03</span></div>
+          <div class="card-art art-toxic">
+            <span>TOX / LAB</span>
+            <span class="art-number">03</span>
+          </div>
           <div class="card-content">
             <p class="card-category">FORENSIC TOXICOLOGY</p>
             <h3>What Toxicology Can Reveal</h3>
@@ -156,7 +154,10 @@
 
         <article class="article-card" data-category="ballistics"
           data-search="ballistics firearms ammunition toolmarks projectile forensic comparison">
-          <div class="card-art art-ballistics"><span>TRACE / 04</span><span class="art-number">04</span></div>
+          <div class="card-art art-ballistics">
+            <span>TRACE / 04</span>
+            <span class="art-number">04</span>
+          </div>
           <div class="card-content">
             <p class="card-category">FORENSIC BALLISTICS</p>
             <h3>Understanding Ballistics</h3>
@@ -167,7 +168,10 @@
 
         <article class="article-card" data-category="technology"
           data-search="forensic technology digital imaging microscopy chromatography instruments">
-          <div class="card-art art-tech"><span>ANALYSIS</span><span class="art-number">05</span></div>
+          <div class="card-art art-tech">
+            <span>ANALYSIS</span>
+            <span class="art-number">05</span>
+          </div>
           <div class="card-content">
             <p class="card-category">METHODS & TECHNOLOGY</p>
             <h3>Tools Behind the Analysis</h3>
@@ -178,7 +182,10 @@
 
         <article class="article-card" data-category="history"
           data-search="history forensic science cases development evidence scientific methods">
-          <div class="card-art art-history"><span>ARCHIVE / 06</span><span class="art-number">06</span></div>
+          <div class="card-art art-history">
+            <span>ARCHIVE / 06</span>
+            <span class="art-number">06</span>
+          </div>
           <div class="card-content">
             <p class="card-category">HISTORY & INTERESTING CASES</p>
             <h3>How Forensic Science Evolved</h3>
@@ -191,6 +198,20 @@
       <p id="emptyMessage" class="empty-message" hidden>
         No articles match your search. Try another keyword or category.
       </p>
+
+      <section class="saved-section" id="savedSection">
+        <div class="section-heading">
+          <p class="eyebrow">YOUR LIBRARY</p>
+          <h2>Saved Articles</h2>
+          <p>Keep useful forensic science articles close at hand.</p>
+        </div>
+
+        <div class="saved-grid" id="savedGrid"></div>
+
+        <p class="saved-empty" id="savedEmpty">
+          You haven't saved any articles yet.
+        </p>
+      </section>
     </section>
 
     <section class="infographics-section section" id="infographics">
@@ -211,7 +232,10 @@
             <span>01 / BIOLOGY</span>
           </div>
           <div class="infographic-caption">
-            <div><h3>Inside DNA profiling</h3><p>A visual introduction to genetic identification.</p></div>
+            <div>
+              <h3>Inside DNA profiling</h3>
+              <p>A visual introduction to genetic identification.</p>
+            </div>
             <span>01</span>
           </div>
         </article>
@@ -222,7 +246,10 @@
             <span>02 / PROCESS</span>
           </div>
           <div class="infographic-caption">
-            <div><h3>The evidence journey</h3><p>From collection to scientific interpretation.</p></div>
+            <div>
+              <h3>The evidence journey</h3>
+              <p>From collection to scientific interpretation.</p>
+            </div>
             <span>02</span>
           </div>
         </article>
@@ -233,12 +260,18 @@
             <span>03 / LABORATORY</span>
           </div>
           <div class="infographic-caption">
-            <div><h3>Reading laboratory results</h3><p>Why context and limitations matter.</p></div>
+            <div>
+              <h3>Reading laboratory results</h3>
+              <p>Why context and limitations matter.</p>
+            </div>
             <span>03</span>
           </div>
         </article>
       </div>
-      <p class="small-note">These are introductory visual concepts. Original, research-checked infographics will be developed for the final project.</p>
+
+      <p class="small-note">
+        These are introductory visual concepts. Original, research-checked infographics will be developed for the final project.
+      </p>
     </section>
 
     <section class="about-section section" id="about">
