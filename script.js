@@ -1,9 +1,9 @@
 
 "use strict";
 
-// -----------------------------------------------
-// 0. SUPABASE CONFIGURATION
-// -----------------------------------------------
+// =====================================================
+// 1. SUPABASE CONFIGURATION
+// =====================================================
 
 const SUPABASE_URL = "https://mqjmbydeduuakltbejeh.supabase.co";
 
@@ -13,18 +13,11 @@ const SUPABASE_PUBLISHABLE_KEY =
 let supabaseClient = null;
 
 function initializeSupabase() {
-  if (
-    !SUPABASE_URL.startsWith("https://") ||
-    SUPABASE_URL === "https://mqjmbydeduuakltbejeh.supabase.co"
-  ) {
-    console.warn(
-      "Supabase is not configured yet. Local article saving remains available."
+  if (!window.supabase ||
+      typeof window.supabase.createClient !== "function") {
+    console.error(
+      "Supabase library has not loaded. Check index.html."
     );
-    return;
-  }
-
-  if (!window.supabase?.createClient) {
-    console.error("Supabase library has not loaded.");
     return;
   }
 
@@ -36,38 +29,9 @@ function initializeSupabase() {
   console.log("Supabase client initialized.");
 }
 
-
-function initializeSupabase() {
-  if (
-    !SUPABASE_URL.startsWith("https://") ||
-    SUPABASE_URL === "PASTE_YOUR_PROJECT_URL_HERE"
-  ) {
-    console.warn(
-      "Supabase is not configured yet. Local article saving remains available."
-    );
-    return;
-  }
-
-  if (!window.supabase?.createClient) {
-    console.error("Supabase library has not loaded.");
-    return;
-  }
-
-  supabaseClient = window.supabase.createClient(
-    SUPABASE_URL,
-    SUPABASE_PUBLISHABLE_KEY
-  );
-
-  console.log("Supabase client initialized.");
-}
-
-// -----------------------------------------------
-// EXISTING ARTICLE CODE CONTINUES BELOW
-// -----------------------------------------------
-
-// -----------------------------------------------
-// 1. ARTICLE DATA
-// -----------------------------------------------
+// =====================================================
+// 2. ARTICLE DATA
+// =====================================================
 
 const articles = {
   dna: {
@@ -215,9 +179,9 @@ const articles = {
   }
 };
 
-// -----------------------------------------------
-// 2. FIND THE HTML ELEMENTS
-// -----------------------------------------------
+// =====================================================
+// 3. HTML ELEMENTS
+// =====================================================
 
 const searchInput = document.getElementById("searchInput");
 const categoryFilter = document.getElementById("categoryFilter");
@@ -236,9 +200,9 @@ const savedEmpty = document.getElementById("savedEmpty");
 
 const STORAGE_KEY = "forensicScienceSavedArticles";
 
-// -----------------------------------------------
-// 3. LOAD SAVED ARTICLES
-// -----------------------------------------------
+// =====================================================
+// 4. LOCAL SAVED ARTICLES
+// =====================================================
 
 function loadSavedArticles() {
   try {
@@ -246,14 +210,12 @@ function loadSavedArticles() {
       localStorage.getItem(STORAGE_KEY) || "[]"
     );
 
-    if (!Array.isArray(stored)) {
-      return [];
-    }
+    if (!Array.isArray(stored)) return [];
 
     return [...new Set(
-      stored.filter(function (id) {
-        return Object.prototype.hasOwnProperty.call(articles, id);
-      })
+      stored.filter(id =>
+        Object.prototype.hasOwnProperty.call(articles, id)
+      )
     )];
   } catch (error) {
     console.warn("Could not load saved articles:", error);
@@ -262,51 +224,6 @@ function loadSavedArticles() {
 }
 
 let savedArticles = loadSavedArticles();
-
-// -----------------------------------------------
-// 4. SEARCH AND CATEGORY FILTER
-// -----------------------------------------------
-
-function filterArticles() {
-  const searchTerm = searchInput.value.trim().toLowerCase();
-  const selectedCategory = categoryFilter.value;
-  const cards = articleGrid.querySelectorAll(".article-card");
-  let visibleCount = 0;
-
-  cards.forEach(function (card) {
-    const searchableText = [
-      card.dataset.search || "",
-      card.textContent || "",
-      articles[card.querySelector("[data-article]")?.dataset.article]
-        ?.keywords || ""
-    ].join(" ").toLowerCase();
-
-    const matchesSearch = searchableText.includes(searchTerm);
-    const matchesCategory =
-      selectedCategory === "all" ||
-      card.dataset.category === selectedCategory;
-
-    const shouldShow = matchesSearch && matchesCategory;
-
-    card.hidden = !shouldShow;
-
-    if (shouldShow) {
-      visibleCount += 1;
-    }
-  });
-
-  resultsCount.textContent =
-    visibleCount + (visibleCount === 1 ? " article" : " articles");
-
-  emptyMessage.hidden = visibleCount !== 0;
-}
-
-searchInput.addEventListener("input", filterArticles);
-categoryFilter.addEventListener("change", filterArticles);
-
-// -----------------------------------------------
-// 5. SAVED ARTICLES
-// -----------------------------------------------
 
 function persistSavedArticles() {
   try {
@@ -323,48 +240,44 @@ function persistSavedArticles() {
 }
 
 function updateSaveButtons() {
-  document.querySelectorAll("[data-save-article]").forEach(
-    function (button) {
-      const articleId = button.dataset.saveArticle;
-      const isSaved = savedArticles.includes(articleId);
-      const isSavedCopy = button.dataset.savedCopy === "true";
+  document.querySelectorAll("[data-save-article]").forEach(button => {
+    const id = button.dataset.saveArticle;
+    const isSaved = savedArticles.includes(id);
 
-      button.textContent = isSavedCopy
+    button.textContent =
+      button.dataset.savedCopy === "true"
         ? "Remove from saved"
         : isSaved
           ? "Saved ✓"
           : "Save article";
 
-      button.setAttribute("aria-pressed", String(isSaved));
-    }
-  );
+    button.setAttribute("aria-pressed", String(isSaved));
+  });
 }
 
 function renderSavedArticles() {
+  if (!savedGrid || !savedEmpty || !articleGrid) return;
+
   savedGrid.replaceChildren();
 
-  savedArticles.forEach(function (articleId) {
-    const originalButton = articleGrid.querySelector(
-      '[data-article="' + articleId + '"]'
+  savedArticles.forEach(id => {
+    const readButton = articleGrid.querySelector(
+      '[data-article="' + id + '"]'
     );
 
-    const originalCard = originalButton
-      ? originalButton.closest(".article-card")
+    const originalCard = readButton
+      ? readButton.closest(".article-card")
       : null;
 
-    if (!originalCard) {
-      return;
-    }
+    if (!originalCard) return;
 
     const card = originalCard.cloneNode(true);
     card.hidden = false;
     card.dataset.savedCopy = "true";
 
-    card.querySelectorAll("[data-save-article]").forEach(
-      function (button) {
-        button.dataset.savedCopy = "true";
-      }
-    );
+    card.querySelectorAll("[data-save-article]").forEach(button => {
+      button.dataset.savedCopy = "true";
+    });
 
     savedGrid.appendChild(card);
   });
@@ -374,45 +287,46 @@ function renderSavedArticles() {
 }
 
 function addSaveButtons() {
-  articleGrid.querySelectorAll(".article-card").forEach(
-    function (card) {
-      const readButton = card.querySelector("[data-article]");
-      const content = card.querySelector(".card-content");
+  if (!articleGrid) return;
 
-      if (!readButton || !content) {
-        return;
-      }
+  articleGrid.querySelectorAll(".article-card").forEach(card => {
+    const readButton = card.querySelector("[data-article]");
+    const content = card.querySelector(".card-content");
 
-      if (content.querySelector("[data-save-article]")) {
-        return;
-      }
-
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "save-button";
-      button.dataset.saveArticle = readButton.dataset.article;
-      button.textContent = "Save article";
-
-      content.appendChild(button);
+    if (
+      !readButton ||
+      !content ||
+      content.querySelector("[data-save-article]")
+    ) {
+      return;
     }
-  );
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "save-button";
+    button.dataset.saveArticle = readButton.dataset.article;
+    button.textContent = "Save article";
+
+    content.appendChild(button);
+  });
 
   updateSaveButtons();
 }
 
-function toggleSavedArticle(articleId) {
-  const previousSavedArticles = [...savedArticles];
+function toggleSavedArticle(id) {
+  if (!Object.prototype.hasOwnProperty.call(articles, id)) return;
 
-  if (savedArticles.includes(articleId)) {
-    savedArticles = savedArticles.filter(function (id) {
-      return id !== articleId;
-    });
+  const previous = [...savedArticles];
+
+  if (savedArticles.includes(id)) {
+    savedArticles = savedArticles.filter(savedId => savedId !== id);
   } else {
-    savedArticles.push(articleId);
+    savedArticles.push(id);
   }
 
   if (!persistSavedArticles()) {
-    savedArticles = previousSavedArticles;
+    savedArticles = previous;
+    updateSaveButtons();
     return;
   }
 
@@ -420,51 +334,80 @@ function toggleSavedArticle(articleId) {
 }
 
 function handleArticleGridClick(event) {
-  const target = event.target;
-
-  if (!(target instanceof Element)) {
-    return;
-  }
-
-  const saveButton = target.closest("[data-save-article]");
+  const saveButton = event.target.closest("[data-save-article]");
 
   if (saveButton) {
-    const articleId = saveButton.dataset.saveArticle;
-
-    if (saveButton.dataset.savedCopy === "true") {
-      // Remove the saved article when clicked in Saved Articles.
-      savedArticles = savedArticles.filter(function (id) {
-        return id !== articleId;
-      });
-
-      if (!persistSavedArticles()) {
-        savedArticles = loadSavedArticles();
-      }
-
-      renderSavedArticles();
-    } else {
-      toggleSavedArticle(articleId);
-    }
-
+    toggleSavedArticle(saveButton.dataset.saveArticle);
     return;
   }
 
-  const readButton = target.closest("[data-article]");
+  const readButton = event.target.closest("[data-article]");
 
   if (readButton) {
     openArticle(readButton.dataset.article);
   }
 }
 
-// -----------------------------------------------
-// 6. OPEN AN ARTICLE
-// -----------------------------------------------
+// =====================================================
+// 5. SEARCH AND CATEGORY FILTER
+// =====================================================
+
+function filterArticles() {
+  if (!searchInput || !categoryFilter || !articleGrid || !resultsCount) {
+    return;
+  }
+
+  const searchTerm = searchInput.value.trim().toLowerCase();
+  const selectedCategory = categoryFilter.value;
+  let visibleCount = 0;
+
+  articleGrid.querySelectorAll(".article-card").forEach(card => {
+    const readButton = card.querySelector("[data-article]");
+    const articleId = readButton?.dataset.article;
+    const articleKeywords = articles[articleId]?.keywords || "";
+
+    const searchableText = [
+      card.dataset.search || "",
+      card.textContent || "",
+      articleKeywords
+    ].join(" ").toLowerCase();
+
+    const matchesSearch = searchableText.includes(searchTerm);
+
+    const matchesCategory =
+      selectedCategory === "all" ||
+      card.dataset.category === selectedCategory;
+
+    const shouldShow = matchesSearch && matchesCategory;
+
+    card.hidden = !shouldShow;
+
+    if (shouldShow) visibleCount++;
+  });
+
+  resultsCount.textContent =
+    visibleCount + (visibleCount === 1 ? " article" : " articles");
+
+  if (emptyMessage) {
+    emptyMessage.hidden = visibleCount !== 0;
+  }
+}
+
+// =====================================================
+// 6. ARTICLE DIALOG
+// =====================================================
 
 function openArticle(articleId) {
   const article = articles[articleId];
 
-  if (!article) {
-    console.error("Article not found:", articleId);
+  if (
+    !article ||
+    !articleDialog ||
+    !dialogCategory ||
+    !dialogTitle ||
+    !dialogBody
+  ) {
+    console.error("Article or dialog element not found:", articleId);
     return;
   }
 
@@ -472,7 +415,7 @@ function openArticle(articleId) {
   dialogTitle.textContent = article.title;
   dialogBody.replaceChildren();
 
-  article.sections.forEach(function (section) {
+  article.sections.forEach(section => {
     const heading = document.createElement("h3");
     heading.textContent = section.heading;
 
@@ -482,43 +425,578 @@ function openArticle(articleId) {
     dialogBody.append(heading, paragraph);
   });
 
+  const saveButton = document.createElement("button");
+  saveButton.type = "button";
+  saveButton.className = "save-button";
+  saveButton.dataset.saveArticle = articleId;
+  saveButton.textContent = savedArticles.includes(articleId)
+    ? "Saved ✓"
+    : "Save article";
+
+  saveButton.setAttribute(
+    "aria-pressed",
+    String(savedArticles.includes(articleId))
+  );
+
+  dialogBody.appendChild(saveButton);
+
   if (typeof articleDialog.showModal === "function") {
     articleDialog.showModal();
   } else {
     alert(
       article.title + "\n\n" +
-      article.sections.map(function (section) {
-        return section.heading + "\n" + section.text;
-      }).join("\n\n")
+      article.sections.map(section =>
+        section.heading + "\n" + section.text
+      ).join("\n\n")
     );
   }
 }
 
-// -----------------------------------------------
-// 7. CLOSE THE ARTICLE DIALOG
-// -----------------------------------------------
-
-closeDialogButton.addEventListener("click", function () {
-  articleDialog.close();
-});
-
-articleDialog.addEventListener("click", function (event) {
-  if (event.target === articleDialog) {
+if (closeDialogButton && articleDialog) {
+  closeDialogButton.addEventListener("click", () => {
     articleDialog.close();
+  });
+
+  articleDialog.addEventListener("click", event => {
+    if (event.target === articleDialog) {
+      articleDialog.close();
+    }
+
+    const saveButton = event.target.closest("[data-save-article]");
+
+    if (saveButton) {
+      toggleSavedArticle(saveButton.dataset.saveArticle);
+    }
+  });
+}
+
+// =====================================================
+// 7. AUTHENTICATION STYLES
+// =====================================================
+
+function addAuthStyles() {
+  if (document.getElementById("supabase-auth-styles")) return;
+
+  const style = document.createElement("style");
+  style.id = "supabase-auth-styles";
+
+  style.textContent = `
+    .fsp-auth-controls {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-left: 12px;
+    }
+
+    .fsp-auth-button {
+      cursor: pointer;
+      font: inherit;
+    }
+
+    .fsp-auth-user {
+      font-size: .85rem;
+      opacity: .85;
+      max-width: 220px;
+      overflow-wrap: anywhere;
+    }
+
+    .fsp-auth-dialog {
+      width: min(92vw, 460px);
+      border: 1px solid rgba(130,145,160,.35);
+      border-radius: 16px;
+      padding: 0;
+      color: #17202a;
+      background: #fff;
+      box-shadow: 0 24px 80px rgba(0,0,0,.28);
+    }
+
+    .fsp-auth-dialog::backdrop {
+      background: rgba(8,15,25,.65);
+      backdrop-filter: blur(3px);
+    }
+
+    .fsp-auth-inner {
+      padding: 26px;
+    }
+
+    .fsp-auth-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .fsp-auth-top h2 {
+      margin: 0 0 8px;
+      font-size: 1.5rem;
+    }
+
+    .fsp-auth-close {
+      border: 0;
+      background: transparent;
+      color: inherit;
+      font-size: 1.6rem;
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    .fsp-auth-form {
+      display: grid;
+      gap: 13px;
+      margin-top: 20px;
+    }
+
+    .fsp-auth-form label {
+      display: grid;
+      gap: 6px;
+      font-size: .9rem;
+    }
+
+    .fsp-auth-form input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 12px;
+      border: 1px solid #aab3bd;
+      border-radius: 8px;
+      font: inherit;
+      color: #17202a;
+      background: #fff;
+    }
+
+    .fsp-auth-primary,
+    .fsp-auth-switch {
+      cursor: pointer;
+      border-radius: 8px;
+      padding: 11px 14px;
+      font: inherit;
+    }
+
+    .fsp-auth-primary {
+      border: 0;
+      background: #183f4b;
+      color: #fff;
+    }
+
+    .fsp-auth-primary:disabled {
+      opacity: .6;
+      cursor: wait;
+    }
+
+    .fsp-auth-switch {
+      border: 1px solid #183f4b;
+      background: transparent;
+      color: #183f4b;
+    }
+
+    .fsp-auth-message {
+      min-height: 1.4em;
+      font-size: .9rem;
+      line-height: 1.5;
+      overflow-wrap: anywhere;
+    }
+
+    .fsp-auth-message[data-kind="error"] {
+      color: #b42318;
+    }
+
+    .fsp-auth-message[data-kind="success"] {
+      color: #16803c;
+    }
+
+    @media (max-width: 600px) {
+      .fsp-auth-controls {
+        margin: 10px 0 0;
+        justify-content: flex-start;
+      }
+
+      .fsp-auth-user {
+        max-width: 100%;
+      }
+
+      .fsp-auth-inner {
+        padding: 20px;
+      }
+    }
+  `;
+
+  document.head.appendChild(style);
+}
+
+// =====================================================
+// 8. CREATE LOGIN AND REGISTRATION UI
+// =====================================================
+
+function createAuthUI() {
+  addAuthStyles();
+
+  const header =
+    document.querySelector(".site-header") ||
+    document.querySelector("header");
+
+  if (!header) {
+    console.warn("Header not found. Auth controls were not added.");
+    return null;
   }
-});
 
-// -----------------------------------------------
-// 8. INITIALISE THE PAGE
-// -----------------------------------------------
+  const controls = document.createElement("div");
+  controls.className = "fsp-auth-controls";
+  controls.id = "fspAuthControls";
 
-addSaveButtons();
+  const openButton = document.createElement("button");
+  openButton.type = "button";
+  openButton.id = "fspAuthOpen";
+  openButton.className = "author-button fsp-auth-button";
+  openButton.textContent = "Sign in / Register";
 
-articleGrid.addEventListener("click", handleArticleGridClick);
-savedGrid.addEventListener("click", handleArticleGridClick);
+  const userLabel = document.createElement("span");
+  userLabel.id = "fspAuthUser";
+  userLabel.className = "fsp-auth-user";
+  userLabel.hidden = true;
 
-renderSavedArticles();
-filterArticles();
+  const signOutButton = document.createElement("button");
+  signOutButton.type = "button";
+  signOutButton.id = "fspAuthSignOut";
+  signOutButton.className = "author-button fsp-auth-button";
+  signOutButton.textContent = "Sign out";
+  signOutButton.hidden = true;
 
-console.log("Forensic Science Portal loaded successfully.");
-console.log("Available articles:", Object.keys(articles).length);
+  controls.append(openButton, userLabel, signOutButton);
+
+  const authorLink = header.querySelector(".author-button");
+
+  if (authorLink && authorLink.parentElement) {
+    authorLink.insertAdjacentElement("afterend", controls);
+  } else {
+    header.appendChild(controls);
+  }
+
+  const authDialog = document.createElement("dialog");
+  authDialog.id = "fspAuthDialog";
+  authDialog.className = "fsp-auth-dialog";
+  authDialog.setAttribute("aria-labelledby", "fspAuthTitle");
+
+  authDialog.innerHTML = `
+    <div class="fsp-auth-inner">
+      <div class="fsp-auth-top">
+        <div>
+          <p class="eyebrow">FORENSIC SCIENCE PORTAL</p>
+          <h2 id="fspAuthTitle">Welcome back</h2>
+          <p id="fspAuthIntro">Sign in with your email and password.</p>
+        </div>
+        <button
+          type="button"
+          id="fspAuthClose"
+          class="fsp-auth-close"
+          aria-label="Close"
+        >×</button>
+      </div>
+
+      <form id="fspAuthForm" class="fsp-auth-form">
+        <label for="fspAuthEmail">
+          Email address
+          <input
+            id="fspAuthEmail"
+            name="email"
+            type="email"
+            autocomplete="email"
+            required
+            maxlength="254"
+          />
+        </label>
+
+        <label for="fspAuthPassword">
+          Password
+          <input
+            id="fspAuthPassword"
+            name="password"
+            type="password"
+            autocomplete="current-password"
+            required
+            minlength="6"
+          />
+        </label>
+
+        <button
+          type="submit"
+          id="fspAuthSubmit"
+          class="fsp-auth-primary"
+        >Sign in</button>
+
+        <button
+          type="button"
+          id="fspAuthSwitch"
+          class="fsp-auth-switch"
+        >Need an account? Register</button>
+
+        <p
+          id="fspAuthMessage"
+          class="fsp-auth-message"
+          role="status"
+          aria-live="polite"
+        ></p>
+      </form>
+    </div>
+  `;
+
+  document.body.appendChild(authDialog);
+
+  let authMode = "signin";
+
+  const title = authDialog.querySelector("#fspAuthTitle");
+  const intro = authDialog.querySelector("#fspAuthIntro");
+  const form = authDialog.querySelector("#fspAuthForm");
+  const emailInput = authDialog.querySelector("#fspAuthEmail");
+  const passwordInput = authDialog.querySelector("#fspAuthPassword");
+  const submitButton = authDialog.querySelector("#fspAuthSubmit");
+  const switchButton = authDialog.querySelector("#fspAuthSwitch");
+  const message = authDialog.querySelector("#fspAuthMessage");
+  const closeButton = authDialog.querySelector("#fspAuthClose");
+
+  function setMessage(text, kind) {
+    message.textContent = text || "";
+
+    if (kind) {
+      message.dataset.kind = kind;
+    } else {
+      delete message.dataset.kind;
+    }
+  }
+
+  function setMode(mode) {
+    authMode = mode;
+
+    const isSignIn = mode === "signin";
+
+    title.textContent = isSignIn
+      ? "Welcome back"
+      : "Create your account";
+
+    intro.textContent = isSignIn
+      ? "Sign in with your email and password."
+      : "Register with your email and a password of at least 6 characters.";
+
+    submitButton.textContent = isSignIn
+      ? "Sign in"
+      : "Create account";
+
+    switchButton.textContent = isSignIn
+      ? "Need an account? Register"
+      : "Already have an account? Sign in";
+
+    passwordInput.autocomplete = isSignIn
+      ? "current-password"
+      : "new-password";
+
+    setMessage("");
+  }
+
+  function updateAuthUI(user) {
+    const isSignedIn = Boolean(user);
+
+    openButton.hidden = isSignedIn;
+    userLabel.hidden = !isSignedIn;
+    signOutButton.hidden = !isSignedIn;
+
+    userLabel.textContent = isSignedIn
+      ? "Signed in: " + (user.email || "account")
+      : "";
+  }
+
+  openButton.addEventListener("click", () => {
+    setMode("signin");
+
+    if (typeof authDialog.showModal === "function") {
+      authDialog.showModal();
+    } else {
+      authDialog.setAttribute("open", "");
+    }
+  });
+
+  closeButton.addEventListener("click", () => {
+    authDialog.close();
+  });
+
+  authDialog.addEventListener("click", event => {
+    if (event.target === authDialog) {
+      authDialog.close();
+    }
+  });
+
+  switchButton.addEventListener("click", () => {
+    setMode(authMode === "signin" ? "signup" : "signin");
+  });
+
+  form.addEventListener("submit", async event => {
+    event.preventDefault();
+
+    if (!supabaseClient) {
+      setMessage(
+        "Connection is unavailable. Refresh the page and try again.",
+        "error"
+      );
+      return;
+    }
+
+    const email = emailInput.value.trim();
+    const password = passwordInput.value;
+    const submittedMode = authMode;
+
+    submitButton.disabled = true;
+    switchButton.disabled = true;
+
+    setMessage(
+      submittedMode === "signin"
+        ? "Signing in…"
+        : "Creating your account…"
+    );
+
+    try {
+      let result;
+
+      if (submittedMode === "signin") {
+        result = await supabaseClient.auth.signInWithPassword({
+          email,
+          password
+        });
+      } else {
+        result = await supabaseClient.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo:
+              window.location.origin + window.location.pathname
+          }
+        });
+      }
+
+      if (result.error) {
+        throw result.error;
+      }
+
+      if (submittedMode === "signup" && !result.data.session) {
+        setMessage(
+          "Registration received. Check your email for a confirmation link. Then return here and sign in.",
+          "success"
+        );
+
+        passwordInput.value = "";
+      } else {
+        const user = result.data.session?.user || result.data.user || null;
+
+        updateAuthUI(result.data.session?.user || null);
+
+        setMessage(
+          submittedMode === "signin"
+            ? "You are signed in."
+            : "Your account has been created.",
+          "success"
+        );
+
+        passwordInput.value = "";
+
+        if (user && result.data.session) {
+          window.setTimeout(() => {
+            if (authDialog.open) authDialog.close();
+          }, 700);
+        }
+      }
+    } catch (error) {
+      console.error("Authentication error:", error);
+
+      let friendlyMessage = error?.message ||
+        "Something went wrong. Please try again.";
+
+      if (/invalid login credentials/i.test(friendlyMessage)) {
+        friendlyMessage = "Email or password is incorrect.";
+      } else if (/user already registered/i.test(friendlyMessage)) {
+        friendlyMessage =
+          "An account with this email already exists. Try signing in.";
+      } else if (/password should be at least/i.test(friendlyMessage)) {
+        friendlyMessage =
+          "Choose a password with at least 6 characters.";
+      }
+
+      setMessage(friendlyMessage, "error");
+    } finally {
+      submitButton.disabled = false;
+      switchButton.disabled = false;
+    }
+  });
+
+  signOutButton.addEventListener("click", async () => {
+    if (!supabaseClient) return;
+
+    signOutButton.disabled = true;
+
+    try {
+      const { error } = await supabaseClient.auth.signOut();
+
+      if (error) throw error;
+
+      updateAuthUI(null);
+    } catch (error) {
+      console.error("Sign-out error:", error);
+      alert("Could not sign out right now. Please try again.");
+    } finally {
+      signOutButton.disabled = false;
+    }
+  });
+
+  return { updateAuthUI };
+}
+
+// =====================================================
+// 9. INITIALISE THE PAGE
+// =====================================================
+
+function initializePage() {
+  if (searchInput) {
+    searchInput.addEventListener("input", filterArticles);
+  }
+
+  if (categoryFilter) {
+    categoryFilter.addEventListener("change", filterArticles);
+  }
+
+  if (articleGrid) {
+    articleGrid.addEventListener("click", handleArticleGridClick);
+  }
+
+  if (savedGrid) {
+    savedGrid.addEventListener("click", handleArticleGridClick);
+  }
+
+  addSaveButtons();
+  renderSavedArticles();
+  filterArticles();
+
+  // Create the controls, then initialise Supabase.
+  const authUI = createAuthUI();
+  initializeSupabase();
+
+  if (supabaseClient && authUI) {
+    supabaseClient.auth.getSession()
+      .then(({ data, error }) => {
+        if (error) throw error;
+        authUI.updateAuthUI(data.session?.user || null);
+      })
+      .catch(error => {
+        console.error("Could not restore session:", error);
+      });
+
+    supabaseClient.auth.onAuthStateChange((_event, session) => {
+      authUI.updateAuthUI(session?.user || null);
+    });
+  }
+
+  console.log("Forensic Science Portal loaded successfully.");
+  console.log("Available articles:", Object.keys(articles).length);
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initializePage);
+} else {
+  initializePage();
+}
