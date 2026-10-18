@@ -1077,3 +1077,44 @@ select:focus-visible {
   overflow-y: auto;
   overscroll-behavior: contain;
 }
+
+/* Saved articles */
+.saved-section {
+  margin-top: 3rem;
+  padding-top: 2rem;
+}
+
+.saved-grid {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(min(100%, 260px), 1fr)
+  );
+  gap: 1.25rem;
+}
+
+.saved-empty {
+  padding: 1rem 0;
+  opacity: 0.75;
+}
+
+.save-button {
+  display: inline-block;
+  margin-top: 0.75rem;
+  padding: 0.65rem 1rem;
+  border: 1px solid currentColor;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.save-button:hover {
+  opacity: 0.75;
+}
+
+.save-button:focus-visible {
+  outline: 2px solid #58a6ff;
+  outline-offset: 3px;
+}
