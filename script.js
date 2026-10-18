@@ -1000,3 +1000,27 @@ if (document.readyState === "loading") {
 } else {
   initializePage();
 }
+
+const authButtonStyles = document.createElement("style");
+
+authButtonStyles.textContent = `
+  .author-button,
+  #authControls button,
+  .auth-button {
+    background-color: #071a35 !important;
+    color: #69d9ff !important;
+    border: 1px solid #69d9ff !important;
+    border-radius: 8px !important;
+    transition: all 0.25s ease !important;
+  }
+
+  .author-button:hover,
+  #authControls button:hover,
+  .auth-button:hover {
+    background-color: #102c50 !important;
+    color: #b5efff !important;
+    box-shadow: 0 0 12px rgba(105, 217, 255, 0.3);
+  }
+`;
+
+document.head.appendChild(authButtonStyles);
