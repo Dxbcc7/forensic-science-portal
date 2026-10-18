@@ -2,6 +2,47 @@
 "use strict";
 
 // -----------------------------------------------
+// 0. SUPABASE CONFIGURATION
+// -----------------------------------------------
+
+const SUPABASE_URL = "PASTE_YOUR_PROJECT_URL_HERE";
+
+const SUPABASE_PUBLISHABLE_KEY =
+  "sb_publishable_Dswj8LMhWvc8Rr_728BMHg_A7Gwc-li";
+
+let supabaseClient = null;
+
+function initializeSupabase() {
+  if (
+    !SUPABASE_URL.startsWith("https://") ||
+    SUPABASE_URL === "PASTE_YOUR_PROJECT_URL_HERE"
+  ) {
+    console.warn(
+      "Supabase is not configured yet. Local article saving remains available."
+    );
+    return;
+  }
+
+  if (!window.supabase?.createClient) {
+    console.error("Supabase library has not loaded.");
+    return;
+  }
+
+  supabaseClient = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_PUBLISHABLE_KEY
+  );
+
+  console.log("Supabase client initialized.");
+}
+
+initializeSupabase();
+
+// -----------------------------------------------
+// EXISTING ARTICLE CODE CONTINUES BELOW
+// -----------------------------------------------
+
+// -----------------------------------------------
 // 1. ARTICLE DATA
 // -----------------------------------------------
 
