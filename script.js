@@ -172,13 +172,19 @@ const savedEmpty = document.getElementById("savedEmpty");
 
 const STORAGE_KEY = "forensicScienceSavedArticles";
 
+// -----------------------------------------------
+// 3. LOAD SAVED ARTICLES
+// -----------------------------------------------
+
 function loadSavedArticles() {
   try {
     const stored = JSON.parse(
       localStorage.getItem(STORAGE_KEY) || "[]"
     );
 
-    if (!Array.isArray(stored)) return [];
+    if (!Array.isArray(stored)) {
+      return [];
+    }
 
     return [...new Set(
       stored.filter(function (id) {
@@ -194,27 +200,27 @@ function loadSavedArticles() {
 let savedArticles = loadSavedArticles();
 
 // -----------------------------------------------
-// 3. SEARCH AND CATEGORY FILTER
+// 4. SEARCH AND CATEGORY FILTER
 // -----------------------------------------------
 
 function filterArticles() {
   const searchTerm = searchInput.value.trim().toLowerCase();
   const selectedCategory = categoryFilter.value;
-
   const cards = articleGrid.querySelectorAll(".article-card");
   let visibleCount = 0;
 
   cards.forEach(function (card) {
-    const cardCategory = card.dataset.category;
     const searchableText = [
       card.dataset.search || "",
-      card.textContent || ""
+      card.textContent || "",
+      articles[card.querySelector("[data-article]")?.dataset.article]
+        ?.keywords || ""
     ].join(" ").toLowerCase();
 
     const matchesSearch = searchableText.includes(searchTerm);
     const matchesCategory =
       selectedCategory === "all" ||
-      cardCategory === selectedCategory;
+      card.dataset.category === selectedCategory;
 
     const shouldShow = matchesSearch && matchesCategory;
 
@@ -231,8 +237,11 @@ function filterArticles() {
   emptyMessage.hidden = visibleCount !== 0;
 }
 
+searchInput.addEventListener("input", filterArticles);
+categoryFilter.addEventListener("change", filterArticles);
+
 // -----------------------------------------------
-// 3A. SAVED ARTICLES
+// 5. SAVED ARTICLES
 // -----------------------------------------------
 
 function persistSavedArticles() {
@@ -250,31 +259,34 @@ function persistSavedArticles() {
 }
 
 function updateSaveButtons() {
-  document.querySelectorAll("[data-save-article]").forEach(function (button) {
-    const articleId = button.dataset.saveArticle;
+  document.querySelectorAll("[data-save-article]").forEach(
+    function (button) {
+      const articleId = button.dataset.saveArticle;
+      const isSaved = savedArticles.includes(articleId);
+      const isSavedCopy = button.dataset.savedCopy === "true";
 
-    if (button.dataset.savedCopy === "true") {
-      button.textContent = "Remove from saved";
-    } else {
-      button.textContent = savedArticles.includes(articleId)
-        ? "Saved ✓"
-        : "Save article";
+      button.textContent = isSavedCopy
+        ? "Remove from saved"
+        : isSaved
+          ? "Saved ✓"
+          : "Save article";
+
+      button.setAttribute("aria-pressed", String(isSaved));
     }
-
-    button.setAttribute(
-      "aria-pressed",
-      String(savedArticles.includes(articleId))
-    );
-  });
+  );
 }
 
 function renderSavedArticles() {
   savedGrid.replaceChildren();
 
   savedArticles.forEach(function (articleId) {
-    const originalCard = articleGrid.querySelector(
+    const originalButton = articleGrid.querySelector(
       '[data-article="' + articleId + '"]'
     );
+
+    const originalCard = originalButton
+      ? originalButton.closest(".article-card")
+      : null;
 
     if (!originalCard) {
       return;
@@ -284,9 +296,11 @@ function renderSavedArticles() {
     card.hidden = false;
     card.dataset.savedCopy = "true";
 
-    card.querySelectorAll("[data-save-article]").forEach(function (button) {
-      button.dataset.savedCopy = "true";
-    });
+    card.querySelectorAll("[data-save-article]").forEach(
+      function (button) {
+        button.dataset.savedCopy = "true";
+      }
+    );
 
     savedGrid.appendChild(card);
   });
@@ -296,37 +310,36 @@ function renderSavedArticles() {
 }
 
 function addSaveButtons() {
-  articleGrid.querySelectorAll(".article-card").forEach(function (card) {
-    const readButton = card.querySelector("[data-article]");
+  articleGrid.querySelectorAll(".article-card").forEach(
+    function (card) {
+      const readButton = card.querySelector("[data-article]");
+      const content = card.querySelector(".card-content");
 
-    if (!readButton) {
-      return;
+      if (!readButton || !content) {
+        return;
+      }
+
+      if (content.querySelector("[data-save-article]")) {
+        return;
+      }
+
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "save-button";
+      button.dataset.saveArticle = readButton.dataset.article;
+      button.textContent = "Save article";
+
+      content.appendChild(button);
     }
-
-    const articleId = readButton.dataset.article;
-    const content = card.querySelector(".card-content");
-
-    if (!content || content.querySelector("[data-save-article]")) {
-      return;
-    }
-
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "save-button";
-    button.dataset.saveArticle = articleId;
-    button.textContent = "Save article";
-
-    content.appendChild(button);
-  });
+  );
 
   updateSaveButtons();
 }
 
 function toggleSavedArticle(articleId) {
-  const wasSaved = savedArticles.includes(articleId);
   const previousSavedArticles = [...savedArticles];
 
-  if (wasSaved) {
+  if (savedArticles.includes(articleId)) {
     savedArticles = savedArticles.filter(function (id) {
       return id !== articleId;
     });
@@ -343,29 +356,44 @@ function toggleSavedArticle(articleId) {
 }
 
 function handleArticleGridClick(event) {
-  const saveButton = event.target.closest("[data-save-article]");
+  const target = event.target;
 
-  if (saveButton) {
-    toggleSavedArticle(saveButton.dataset.saveArticle);
+  if (!(target instanceof Element)) {
     return;
   }
 
-  const readButton = event.target.closest("[data-article]");
+  const saveButton = target.closest("[data-save-article]");
+
+  if (saveButton) {
+    const articleId = saveButton.dataset.saveArticle;
+
+    if (saveButton.dataset.savedCopy === "true") {
+      // Remove the saved article when clicked in Saved Articles.
+      savedArticles = savedArticles.filter(function (id) {
+        return id !== articleId;
+      });
+
+      if (!persistSavedArticles()) {
+        savedArticles = loadSavedArticles();
+      }
+
+      renderSavedArticles();
+    } else {
+      toggleSavedArticle(articleId);
+    }
+
+    return;
+  }
+
+  const readButton = target.closest("[data-article]");
 
   if (readButton) {
     openArticle(readButton.dataset.article);
   }
 }
 
-addSaveButtons();
-
-articleGrid.addEventListener("click", handleArticleGridClick);
-savedGrid.addEventListener("click", handleArticleGridClick);
-
-renderSavedArticles();
-
 // -----------------------------------------------
-// 4. OPEN AN ARTICLE
+// 6. OPEN AN ARTICLE
 // -----------------------------------------------
 
 function openArticle(articleId) {
@@ -378,9 +406,6 @@ function openArticle(articleId) {
 
   dialogCategory.textContent = article.category;
   dialogTitle.textContent = article.title;
-
-  // Build the article using DOM methods and textContent.
-  // This avoids treating article text as executable HTML.
   dialogBody.replaceChildren();
 
   article.sections.forEach(function (section) {
@@ -397,8 +422,7 @@ function openArticle(articleId) {
     articleDialog.showModal();
   } else {
     alert(
-      article.title +
-      "\n\n" +
+      article.title + "\n\n" +
       article.sections.map(function (section) {
         return section.heading + "\n" + section.text;
       }).join("\n\n")
@@ -406,18 +430,8 @@ function openArticle(articleId) {
   }
 }
 
-addSaveButtons();
-
-articleGrid.addEventListener("click", handleArticleGridClick);
-savedGrid.addEventListener("click", handleArticleGridClick);
-
-renderSavedArticles();
-
-  openArticle(button.dataset.article);
-});
-
 // -----------------------------------------------
-// 5. CLOSE THE ARTICLE DIALOG
+// 7. CLOSE THE ARTICLE DIALOG
 // -----------------------------------------------
 
 closeDialogButton.addEventListener("click", function () {
@@ -425,16 +439,21 @@ closeDialogButton.addEventListener("click", function () {
 });
 
 articleDialog.addEventListener("click", function (event) {
-  // Close only when the user clicks the backdrop.
   if (event.target === articleDialog) {
     articleDialog.close();
   }
 });
 
 // -----------------------------------------------
-// 6. INITIALISE THE PAGE
+// 8. INITIALISE THE PAGE
 // -----------------------------------------------
 
+addSaveButtons();
+
+articleGrid.addEventListener("click", handleArticleGridClick);
+savedGrid.addEventListener("click", handleArticleGridClick);
+
+renderSavedArticles();
 filterArticles();
 
 console.log("Forensic Science Portal loaded successfully.");
