@@ -167,6 +167,32 @@ const dialogCategory = document.getElementById("dialogCategory");
 const dialogTitle = document.getElementById("dialogTitle");
 const dialogBody = document.getElementById("dialogBody");
 
+const savedGrid = document.getElementById("savedGrid");
+const savedEmpty = document.getElementById("savedEmpty");
+
+const STORAGE_KEY = "forensicScienceSavedArticles";
+
+function loadSavedArticles() {
+  try {
+    const stored = JSON.parse(
+      localStorage.getItem(STORAGE_KEY) || "[]"
+    );
+
+    if (!Array.isArray(stored)) return [];
+
+    return [...new Set(
+      stored.filter(function (id) {
+        return Object.prototype.hasOwnProperty.call(articles, id);
+      })
+    )];
+  } catch (error) {
+    console.warn("Could not load saved articles:", error);
+    return [];
+  }
+}
+
+let savedArticles = loadSavedArticles();
+
 // -----------------------------------------------
 // 3. SEARCH AND CATEGORY FILTER
 // -----------------------------------------------
