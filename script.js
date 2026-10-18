@@ -276,12 +276,12 @@ function openArticle(articleId) {
   }
 }
 
-articleGrid.addEventListener("click", function (event) {
-  const button = event.target.closest("[data-article]");
+addSaveButtons();
 
-  if (!button) {
-    return;
-  }
+articleGrid.addEventListener("click", handleArticleGridClick);
+savedGrid.addEventListener("click", handleArticleGridClick);
+
+renderSavedArticles();
 
   openArticle(button.dataset.article);
 });
